@@ -177,6 +177,7 @@ const recepWall = new THREE.Mesh(new THREE.PlaneGeometry(4.4, .8),
     x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('산부인과 외래 접수', 550, 106);
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return new THREE.MeshBasicMaterial({ map: t }); })());
 recepWall.position.set(-9, 2.5, -6.98); scene.add(recepWall);
+box(5.2, 2.0, .04, 0xb9d2e8, -9, 1.0, -6.96, { cast: false });                    // 접수 뒤 포인트 벽면
 
 // 대기석
 function chair(color) {
@@ -186,7 +187,32 @@ function chair(color) {
   [[-.25, -.22], [.25, -.22], [-.25, .22], [.25, .22]].forEach(([x, z]) => box(.05, .42, .05, 0x59636d, x, .21, z, { parent: g }));
   scene.add(g); return g;
 }
-[1.0, 3.0].forEach(z => [-10, -8.5, -7, -5.5, -4].forEach(x => { const c = chair(0x4a6fa5); c.position.set(x, 0, z); }));
+function bench(n, cx, cz, color = 0x4a6fa5) {
+  const g = new THREE.Group(), L = n * .6, fr = 0x59636d;
+  box(L + .1, .07, .46, fr, 0, .33, .02, { parent: g });                             // 이어진 하나의 받침 프레임
+  for (let i = 0; i <= n; i++) {
+    const x = -L / 2 + i * .6;
+    box(.05, .30, .05, fr, x, .15, .17, { parent: g }); box(.05, .30, .05, fr, x, .15, -.15, { parent: g });
+  }
+  for (let i = 0; i < n; i++) {
+    const x = -L / 2 + .3 + i * .6;
+    box(.585, .10, .52, color, x, .41, 0, { parent: g });                            // 방석 (윗면 높이 .46)
+    const bk = box(.585, .52, .10, color, x, .76, .27, { parent: g }); bk.rotation.x = .1;   // 등받이
+  }
+  [-1, 1].forEach(sd => {                                                            // 양 끝 팔걸이
+    box(.06, .06, .5, fr, sd * (L / 2 + .03), .64, .02, { parent: g });
+    box(.06, .24, .06, fr, sd * (L / 2 + .03), .50, -.18, { parent: g });
+  });
+  g.position.set(cx, 0, cz); g.rotation.y = -Math.PI / 2;                            // 등받이가 왼쪽 벽 쪽, 앞은 +x
+  scene.add(g); return g;
+}
+bench(4, -12.7, -1.5); bench(4, -12.7, 1.6);
+const waitSign = new THREE.Mesh(new THREE.PlaneGeometry(2.0, .5),
+  (() => { const c = document.createElement('canvas'); c.width = 800; c.height = 200; const x = c.getContext('2d');
+    x.fillStyle = '#2b6cb0'; rr(x, 0, 0, 800, 200, 28); x.fill(); x.fillStyle = '#fff'; x.font = `700 92px ${FONT}`;
+    x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('대기석', 400, 106);
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return new THREE.MeshBasicMaterial({ map: t }); })());
+waitSign.position.set(-12.97, 2.0, .05); waitSign.rotation.y = Math.PI / 2; scene.add(waitSign);
 
 // 처치실 소품 ─ 책상 구역
 box(2.7, .78, .9, 0xc8b8a2, 9.4, .39, -6.4);
@@ -213,15 +239,39 @@ cyl(.07, .08, .06, 0xd4af37, 9.2, .86, -6.2);                                   
 box(.26, .012, .34, 0xffffff, 9.55, .835, -6.05).rotation.y = .3;                 // 산모수첩·결과지
 box(.26, .012, .34, 0xfff6d6, 9.0, .835, -6.6).rotation.y = -.2;
 
-// 환자용 의자·침상
-const pChair = chair(0x6b8f71); pChair.position.set(8.4, 0, -4.2);
-box(.95, .45, 2.0, 0x9fb2c2, 10.4, .3, -1.8);
-const bedTop = box(.9, .12, 1.95, 0xdfe7ee, 10.4, .58, -1.8);
-box(.7, .12, .4, 0xffffff, 10.4, .7, -2.55);
-mark('bed', bedTop);
-const nst1 = cyl(.07, .07, .04, 0xff9f1c, 10.28, .66, -1.5); const nst2 = cyl(.07, .07, .04, 0xff9f1c, 10.52, .66, -1.3);
-box(.8, .02, .1, 0x7a8591, 10.4, .655, -1.4);
-mark('bed', nst1, nst2);
+// 환자용 의자 · 관찰 침상 2개 · 개인정보 보호 커튼
+const pChair = chair(0x6b8f71); pChair.position.set(8.4, 0, -4.2); face(pChair, 7.1, -3.3);
+function bed(z) {
+  const g = new THREE.Group(); g.position.set(10.4, 0, z); scene.add(g);
+  box(.95, .45, 2.0, 0x9fb2c2, 0, .3, 0, { parent: g });
+  const top = box(.9, .12, 1.95, 0xdfe7ee, 0, .58, 0, { parent: g });
+  box(.95, .55, .07, 0x6b7f92, 0, .78, -1.0, { parent: g });                          // 머리판
+  box(.62, .12, .36, 0xffffff, 0, .7, -.7, { parent: g });                           // 베개
+  return top;
+}
+const bedTop = bed(-3.2), bedTopB = bed(-.4);
+const nst1 = cyl(.07, .07, .04, 0xff9f1c, 10.28, .66, -2.6); const nst2 = cyl(.07, .07, .04, 0xff9f1c, 10.52, .66, -2.5);
+box(.8, .02, .1, 0x7a8591, 10.4, .655, -2.55);
+mark('bed', bedTop, nst1, nst2);
+function rail(x0, z0, x1, z1, top = 2.47) {
+  const len = Math.hypot(x1 - x0, z1 - z0);
+  const r = box(len, .035, .035, 0xaab4be, (x0 + x1) / 2, top, (z0 + z1) / 2, { cast: false });
+  r.rotation.y = -Math.atan2(z1 - z0, x1 - x0);
+}
+function curtain(x0, z0, x1, z1, { top = 2.45, h = 2.08, color = 0xa9ddd4, wl = .3, amp = .04, op = .7 } = {}) {
+  const len = Math.hypot(x1 - x0, z1 - z0), nx = Math.max(8, Math.round(len / (wl / 6)));
+  const geo = new THREE.PlaneGeometry(len, h, nx, 1), p = geo.attributes.position;
+  for (let i = 0; i < p.count; i++) p.setZ(i, Math.sin(p.getX(i) / wl * Math.PI * 2) * amp);   // 주름
+  geo.computeVertexNormals();
+  const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color, roughness: .95, transparent: true, opacity: op, side: THREE.DoubleSide, depthWrite: false }));
+  m.position.set((x0 + x1) / 2, top - h / 2, (z0 + z1) / 2); m.rotation.y = -Math.atan2(z1 - z0, x1 - x0);
+  scene.add(m); return m;
+}
+rail(10.95, -1.8, 9.3, -1.8); rail(9.3, -4.5, 9.3, -1.8); rail(9.3, -1.8, 9.3, .8);   // 천장 레일
+[[9.3, -4.5], [9.3, -1.8], [9.3, .8]].forEach(([x, z]) => cyl(.015, .015, .55, 0x9aa5b1, x, 2.75, z, { cast: false }));
+curtain(10.95, -1.8, 9.3, -1.8, { wl: .3, amp: .045 });          // 두 침상 사이: 닫힌 커튼
+curtain(9.3, -2.4, 9.3, -1.9, { wl: .12, amp: .05 });           // 침상 ① 옆: 열어 모아 둔 커튼
+curtain(9.3, -1.7, 9.3, -.95, { wl: .14, amp: .06 });            // 침상 ② 옆: 열어 모아 둔 커튼
 
 // 경과 시간 카드
 const cardCanvas = document.createElement('canvas'); cardCanvas.width = 360; cardCanvas.height = 240;
@@ -237,7 +287,7 @@ function setCard(t) {
   if (t.length > 8) { x.fillText(t.slice(0, mid), 180, 92); x.fillText(t.slice(mid), 180, 150); } else x.fillText(t, 180, 120);
   cardTex.needsUpdate = true;
 }
-const cardG = new THREE.Group(); cardG.position.set(9.9, 0, .2); cardG.rotation.y = Math.atan2(6 - 9.9, -1 - .2); scene.add(cardG);
+const cardG = new THREE.Group(); cardG.position.set(6.0, 0, -.2); cardG.rotation.y = Math.atan2(5.7 - 6.0, 3.4 + .2); scene.add(cardG);
 cyl(.025, .025, 1.3, 0x555e68, 0, .65, 0, { parent: cardG });
 cyl(.25, .27, .03, 0x555e68, 0, .015, 0, { parent: cardG });
 const cardBody = box(.62, .42, .03, 0xffffff, 0, 1.45, 0, { parent: cardG });
@@ -270,56 +320,127 @@ for (let i = 0; i < path.length - 1; i++) {
 }
 
 /* ================= 인물 ================= */
-function person(color, { sit = false, belly = false } = {}) {
-  const g = new THREE.Group(), body = mat(color), pants = mat(0x3b4a5a), skin = mat(0xf0c8a4);
-  const add = (geo, m, x, y, z, rz = 0) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.rotation.z = rz; o.castShadow = true; o.receiveShadow = true; g.add(o); return o; };
-  let ty;
-  if (!sit) {
-    add(new THREE.CylinderGeometry(.085, .075, .82, 12), pants, -.1, .41, 0);
-    add(new THREE.CylinderGeometry(.085, .075, .82, 12), pants, .1, .41, 0);
-    ty = 1.14;
-  } else {
-    add(new THREE.BoxGeometry(.15, .15, .5), pants, -.1, .52, -.22); add(new THREE.BoxGeometry(.15, .15, .5), pants, .1, .52, -.22);
-    add(new THREE.BoxGeometry(.12, .45, .12), pants, -.1, .25, -.47); add(new THREE.BoxGeometry(.12, .45, .12), pants, .1, .25, -.47);
-    ty = .78;
+const ARMS = {                                   // [어깨 앞으로, 어깨 벌림(+바깥/-안쪽), 팔꿈치]
+  down: [.04, .10, .08], rest: [.45, .02, 1.05], belly: [.55, -.10, 1.10],
+  desk: [.80, 0, .35], reach: [.75, 0, .25], clip: [.35, -.18, 1.8],
+};
+function makePerson(o) {
+  const { top = 0x2ba6a0, bottom = 0x3b4a5a, skin = 0xf2c9a5, hair = 0x2b2420, hairStyle = 'short', coat = null, belly = false, sit = false,
+    shoe = 0x2a2f36, clip = false, badge = false, glasses = false, longSleeve = false, scale = .96, defArms = 'down' } = o;
+  const g = new THREE.Group(), rig = new THREE.Group(); rig.scale.setScalar(scale); g.add(rig);
+  const body = new THREE.Group(); rig.add(body);
+  const baseY = sit ? .54 / scale : .875; body.position.set(0, baseY, sit ? .07 : 0);
+  const mTop = mat(top), mBot = mat(bottom), mSkin = mat(skin, { roughness: .7 }), mShoe = mat(shoe);
+  const hairM = new THREE.MeshStandardMaterial({ color: hair, roughness: .6, side: THREE.DoubleSide });
+  const mesh = (geo, m, p, parent = body, sc) => {
+    const x = new THREE.Mesh(geo, m); x.position.set(p[0], p[1], p[2]); if (sc) x.scale.set(sc[0], sc[1], sc[2]);
+    x.castShadow = true; x.receiveShadow = true; parent.add(x); return x;
+  };
+  const sleeveM = coat ? new THREE.MeshStandardMaterial({ color: coat, roughness: .8 }) : mTop;
+  // 다리
+  const legs = [-1, 1].map(sd => {
+    const hip = new THREE.Group(); hip.position.set(sd * .085, 0, 0); body.add(hip);
+    mesh(new THREE.CapsuleGeometry(.075, .27, 4, 12), mBot, [0, -.21, 0], hip);
+    const knee = new THREE.Group(); knee.position.y = -.42; hip.add(knee);
+    mesh(new THREE.CapsuleGeometry(.062, .29, 4, 12), mBot, [0, -.21, 0], knee);
+    mesh(new THREE.SphereGeometry(.068, 10, 8), mBot, [0, 0, 0], knee);                       // 무릎 이음
+    mesh(new THREE.BoxGeometry(.105, .07, .27), mShoe, [0, -.42, -.05], knee);
+    return { hip, knee };
+  });
+  // 몸통
+  mesh(new THREE.SphereGeometry(.13, 16, 12), mBot, [0, -.01, 0], body, [1.2, .85, .95]);
+  mesh(new THREE.CapsuleGeometry(.14, .30, 6, 16), mTop, [0, .27, 0], body, [1.12, 1, .78]);
+  if (belly) mesh(new THREE.SphereGeometry(.17, 20, 16), mTop, [0, .13, -.12], body, [1.05, .95, 1.0]);
+  mesh(new THREE.CylinderGeometry(.045, .05, .09, 12), mSkin, [0, .60, 0]);
+  if (coat) {                                                                         // 흰 가운 (앞이 열린 형태)
+    const cm = new THREE.MeshStandardMaterial({ color: coat, roughness: .8, side: THREE.DoubleSide });
+    mesh(new THREE.CylinderGeometry(.17, .245, .85, 28, 1, true, Math.PI + .32, Math.PI * 2 - .64), cm, [0, .095, 0], body, [1.05, 1, .82]);
+    [-1, 1].forEach(sd => mesh(new THREE.BoxGeometry(.07, .05, .012), cm, [sd * .13, -.08, -.17]));
   }
-  add(new THREE.CylinderGeometry(.2, .22, .66, 16), body, 0, ty, 0);
-  add(new THREE.CylinderGeometry(.05, .05, .55, 10), body, -.28, ty - .03, 0, .12);
-  add(new THREE.CylinderGeometry(.05, .05, .55, 10), body, .28, ty - .03, 0, -.12);
-  if (belly) add(new THREE.SphereGeometry(.27, 20, 16), body, 0, ty - .08, -.2);
-  const hy = ty + .33 + .17;
-  add(new THREE.SphereGeometry(.15, 20, 16), skin, 0, hy, 0);
-  add(new THREE.BoxGeometry(.05, .05, .07), skin, 0, hy - .01, -.15);
-  g.userData.top = hy + .22;
-  scene.add(g); return g;
+  if (badge) mesh(new THREE.BoxGeometry(.07, .045, .008), mat(0xffffff), [coat ? .11 : .08, coat ? .34 : .36, coat ? -.15 : -.114]);
+  // 머리
+  const head = new THREE.Group(); head.position.set(0, .73, 0); body.add(head);
+  mesh(new THREE.SphereGeometry(.115, 24, 18), mSkin, [0, 0, 0], head, [1, 1.08, 1.02]);
+  [-1, 1].forEach(sd => {
+    mesh(new THREE.SphereGeometry(.014, 8, 8), mat(0x1c1c22), [sd * .042, .012, -.112], head);
+    mesh(new THREE.SphereGeometry(.02, 8, 8), mSkin, [sd * .115, 0, 0], head);
+    if (glasses) { const t = mesh(new THREE.TorusGeometry(.03, .005, 6, 16), mat(0x22262c), [sd * .042, .012, -.118], head); }
+  });
+  mesh(new THREE.SphereGeometry(.018, 8, 8), mSkin, [0, -.012, -.119], head);
+  mesh(new THREE.BoxGeometry(.04, .007, .01), mat(0xc0605a), [0, -.05, -.108], head);
+  const hs = [1, 1.08, 1.02], R = .124, PI = Math.PI;
+  mesh(new THREE.SphereGeometry(R, 24, 14, 0, PI * 2, 0, PI * .36), hairM, [0, 0, 0], head, hs);          // 윗머리
+  const bt = hairStyle === 'long' ? .86 : hairStyle === 'bun' ? .62 : .55;
+  mesh(new THREE.SphereGeometry(R, 24, 16, PI * 1.5 + .9, PI * 2 - 1.8, 0, PI * bt), hairM, [0, 0, 0], head, hs);   // 뒤·옆머리
+  if (hairStyle === 'bun') mesh(new THREE.SphereGeometry(.055, 12, 10), hairM, [0, .1, .1], head);
+  if (hairStyle === 'long') mesh(new THREE.CapsuleGeometry(.1, .14, 4, 10), hairM, [0, -.14, .07], head, [1.1, 1, .7]);
+  // 팔
+  const arms = [-1, 1].map(sd => {
+    const sh = new THREE.Group(); sh.position.set(sd * .205, .5, 0); body.add(sh);
+    mesh(new THREE.SphereGeometry(.055, 10, 8), sleeveM, [0, 0, 0], sh);
+    mesh(new THREE.CapsuleGeometry(.05, .2, 4, 10), sleeveM, [0, -.15, 0], sh);
+    const el = new THREE.Group(); el.position.y = -.30; sh.add(el);
+    mesh(new THREE.CapsuleGeometry(.042, .19, 4, 10), longSleeve || coat ? sleeveM : mSkin, [0, -.14, 0], el);
+    mesh(new THREE.SphereGeometry(.048, 10, 8), mSkin, [0, -.30, 0], el);
+    return { sh, el, sd };
+  });
+  if (clip) {                                                                        // 클립보드
+    const cb = mesh(new THREE.BoxGeometry(.24, .32, .015), mat(0xb98b56), [0, .37, -.30]); cb.rotation.x = -.3;
+    mesh(new THREE.BoxGeometry(.2, .27, .006), mat(0xffffff), [0, 0, .01], cb);
+    mesh(new THREE.BoxGeometry(.09, .03, .02), mat(0xaab4be), [0, .15, -.005], cb);
+  }
+  const SIT = sit ? 1.45 : 0;
+  const u = g.userData;
+  u.top = (baseY + .88) * scale + .06;
+  u.setArms = n => { const [sx, sz, ex] = ARMS[n] || ARMS.down; arms.forEach(a => { a.sh.rotation.set(sx, 0, a.sd * sz); a.el.rotation.set(ex, 0, 0); }); };
+  u.reset = () => { legs.forEach(l => { l.hip.rotation.x = SIT; l.knee.rotation.x = -SIT; }); body.position.y = baseY; u.setArms(defArms); };
+  u.walk = (ph, a = 1) => {
+    const sn = Math.sin(ph);
+    legs[0].hip.rotation.x = sn * .6 * a; legs[1].hip.rotation.x = -sn * .6 * a;
+    legs[0].knee.rotation.x = -Math.max(0, Math.cos(ph)) * .7 * a; legs[1].knee.rotation.x = -Math.max(0, -Math.cos(ph)) * .7 * a;
+    arms[0].sh.rotation.set(-sn * .5 * a, 0, -.1); arms[1].sh.rotation.set(sn * .5 * a, 0, .1);
+    arms[0].el.rotation.x = arms[1].el.rotation.x = .25;
+    body.position.y = baseY + Math.abs(Math.cos(ph)) * .012;
+  };
+  u.reset(); scene.add(g); return g;
 }
-const recep = person(0x5ab88a); recep.position.set(-9, 0, -6.3); face(recep, -9, -4);
-const pStand = person(0xd96ca8, { belly: true }), pSit = person(0xd96ca8, { sit: true, belly: true });
-const learner = person(0x2f80ed), evalr = person(0x8b95a1);
+const recep = makePerson({ top: 0x5b88b0, bottom: 0x2a3340, hair: 0x3b2a20, hairStyle: 'bun', coat: 0xffffff, badge: true, defArms: 'desk' });
+const patO = { top: 0xe58fb4, bottom: 0x3d3f4a, hair: 0x3a2a22, hairStyle: 'long', belly: true, shoe: 0xf5f5f5, defArms: 'belly' };
+const pStand = makePerson(patO), pSit = makePerson({ ...patO, sit: true });
+const learner = makePerson({ top: 0x2ba6a0, bottom: 0x238a85, hair: 0x2b2420, hairStyle: 'bun', badge: true, skin: 0xefc29c, defArms: 'down' });
+const evalr = makePerson({ top: 0x6b7480, bottom: 0x2f343b, hair: 0x6b5b4a, hairStyle: 'short', longSleeve: true, glasses: true, clip: true, skin: 0xe8b894, defArms: 'clip' });
+// 대기 중인 다른 환자 (배경)
+const other1 = makePerson({ top: 0x9b8fd6, bottom: 0x39424e, hair: 0x6b4a32, hairStyle: 'short', sit: true, belly: true, skin: 0xe8b894, defArms: 'belly' });
+other1.position.set(-12.7, 0, .7); face(other1, -5, .7);
+const other2 = makePerson({ top: 0xf2b84b, bottom: 0x4a5568, hair: 0x2b2420, hairStyle: 'bun', sit: true, skin: 0xf2c9a5, defArms: 'rest' });
+other2.position.set(-12.7, 0, 1.9); face(other2, -5, 1.9);
+const STAFF = { x: -9, z: -6.3, fx: -9, fz: -4 };
 
 addLabel('산모', 0, pStand.userData.top, 0, ['pat'], { dot: IN }, pStand);
 addLabel('산모', 0, pSit.userData.top, 0, ['pat'], { dot: IN }, pSit);
 addLabel('SP (산모 역)', 0, pStand.userData.top, 0, ['roles'], { dot: ROLE }, pStand);
 addLabel('SP (산모 역)', 0, pSit.userData.top, 0, ['roles'], { dot: ROLE }, pSit);
-addLabel('학습자 (외래 신규 간호사)', 0, learner.userData.top, 0, ['roles', 'entry'], { dot: ROLE }, learner);
+addLabel('학습자 (외래 신규 간호사)', 0, learner.userData.top + .3, 0, ['roles', 'entry'], { dot: ROLE }, learner);
 addLabel('평가자 (관찰)', 0, evalr.userData.top, 0, ['roles'], { dot: ROLE }, evalr);
 
 /* 위치 라벨 */
 addLabel('접수 데스크', -7.4, 1.25, -4.7, ['reception'], { dot: IN });
-addLabel('대기석 (대기 약 1시간)', -5.4, .8, .5, ['waiting'], { dot: IN });
+addLabel('대기석 (대기 약 1시간)', -12.2, 1.5, 1.2, ['waiting'], { dot: IN });
 addLabel('처치실 입구 — 호출 위치', 3, 2.9, -2.65, ['entry'], { dot: IN });
-addLabel('상완형 자동혈압계 (표시값 고정)', 10.2, 1.7, -6.4, ['desk'], { dot: PROP });
-addLabel('전화 (의료진·전공의 역할이 응답)', 8.5, 1.35, -6.4, ['desk'], { dot: PROP });
-addLabel('호출벨 · 결과지 · 산모수첩', 9.4, .95, -5.9, ['desk'], { dot: PROP });
-addLabel('관찰 침상', 10.4, 1.15, -2.4, ['bed'], { dot: PROP });
-addLabel('NST 트랜스듀서 2개 + 벨트 (부착 시연용)', 10.4, 1.45, -1.3, ['bed'], { dot: PROP });
-addLabel('경과 시간 카드', 9.9, 1.95, .2, ['card'], { dot: PROP });
+addLabel('상완형 자동혈압계 (표시값 고정)', 10.3, 1.75, -6.4, ['desk'], { dot: PROP });
+addLabel('전화 (의료진·전공의 역할이 응답)', 8.3, 1.2, -6.4, ['desk'], { dot: PROP });
+addLabel('호출벨 · 결과지 · 산모수첩', 10.0, .55, -5.3, ['desk'], { dot: PROP });
+addLabel('관찰 침상 ① (NST 시연)', 10.4, 1.15, -3.95, ['bed'], { dot: PROP });
+addLabel('관찰 침상 ②', 10.4, 1.15, .2, ['bed'], { dot: PROP });
+addLabel('커튼 (개인정보 보호)', 9.3, 2.6, -1.8, ['bed'], { dot: PROP });
+addLabel('NST 트랜스듀서 2개 + 벨트 (부착 시연용)', 10.4, 1.55, -2.55, ['bed'], { dot: PROP });
+addLabel('경과 시간 카드', 6.0, 1.95, -.2, ['card'], { dot: PROP });
 addLabel('휠체어 (채혈채뇨실 이동 동행)', 4.6, 1.05, -.3, ['card'], { dot: PROP });
 addLabel('채혈채뇨실 — 시뮬레이션 밖', 10, 2.6, 7.9, ['out'], { dot: OUT, k: .0055 });
 addLabel('초음파실 — 시뮬레이션 밖', 5.5, 2.6, 7.9, ['out'], { dot: OUT, k: .0055 });
 addLabel('이동·검사 시간은 시간 카드로 압축', 6, .6, 4.4, ['out'], { dot: PROP });
-addLabel('의료진·전공의 역할 (전화 응답)', 8.3, 2.1, -6.4, ['roles'], { dot: ROLE });
-addLabel('접수 · 대기 구역', -7, 2.2, 2.2, ['zones'], { dot: IN, k: .007, size: 44 });
+addLabel('의료진·전공의 역할 (전화 응답)', 10.0, 2.35, -6.4, ['roles'], { dot: ROLE });
+addLabel('접수 · 대기 구역', -9, 2.4, .5, ['zones'], { dot: IN, k: .007, size: 44 });
 addLabel('처치실 = 시뮬레이션 안', 7, 3.4, -3, ['zones'], { dot: IN, k: .007, size: 44 });
 addLabel('복도 · 채혈채뇨실 · 초음파실 = 시뮬레이션 밖', 6, 2.4, 4.0, ['zones'], { dot: OUT, k: .007, size: 44 });
 
@@ -332,16 +453,16 @@ const STAGES = [
   { k: 'E', label: '입원 결정, 안내, 인계', min: [7.5, 10] },
 ];
 const fmt = m => { const mm = Math.floor(m), ss = Math.round((m - mm) * 60); return `${mm}:${String(ss).padStart(2, '0')}`; };
-const ROOMPAT = { m: 'sit', x: 8.4, z: -4.2, fx: 7.1, fz: -3.3 };
-const EV = { x: 10.3, z: -4.6, fx: 8.4, fz: -4.0 };
+const ROOMPAT = { m: 'sit', x: 8.4, z: -4.2, y: .03, fx: 7.1, fz: -3.3 };
+const EV = { x: 4.0, z: -6.1, fx: 8, fz: -4.0 };
 const F = {
   recep: { pat: { m: 'stand', x: -9, z: -4.0, fx: -9, fz: -5.4 } },
-  wait: { pat: { m: 'sit', x: -7, z: 1.0, fx: -7, fz: -6 } },
-  call: { pat: { m: 'stand', x: -1.8, z: -2.2, fx: 3, fz: -2.65 }, learner: { x: 2.5, z: -2.65, fx: -2, fz: -2.2 } },
+  wait: { pat: { m: 'sit', x: -12.7, z: -1.8, fx: -5, fz: -1.8 } },
+  call: { pat: { m: 'stand', x: -4.6, z: -2.3, fx: 3, fz: -2.65 }, learner: { x: 2.4, z: -2.65, fx: -2, fz: -2.3 } },
   props: { pat: ROOMPAT, evalr: EV },
   room: { pat: ROOMPAT, learner: { x: 7.1, z: -3.3, fx: 8.4, fz: -4.2 }, evalr: EV },
-  phone: { pat: ROOMPAT, learner: { x: 8.7, z: -5.25, fx: 8.7, fz: -6.4 }, evalr: EV },
-  bed: { pat: { m: 'sit', x: 10.3, z: -1.9, y: .19, fx: 8, fz: -1.9 }, learner: { x: 9.3, z: -2.9, fx: 10.3, fz: -1.9 }, evalr: EV },
+  phone: { pat: ROOMPAT, learner: { x: 8.7, z: -5.75, fx: 8.7, fz: -6.4, arms: 'reach' }, evalr: EV },
+  bed: { pat: { m: 'sit', x: 10.3, z: -3.2, y: .18, fx: 8, fz: -3.2 }, learner: { x: 8.8, z: -2.05, fx: 10.3, fz: -3.2 }, evalr: EV },
 };
 const R6 = i => ({
   from: [4.3 + .12 * i, 2.8 - .03 * i, .1 - .1 * i, 8.5, .7, -3.4],
@@ -349,7 +470,7 @@ const R6 = i => ({
 });
 const SHOTS = [
   { ch: '오프닝', tag: '시나리오 소개', clock: '가상 외래 공간', dur: 6, ease: 'lin',
-    from: [-3, 11, 11, 0, 0, -1], to: [3, 11, 10, 0, 0, -1], fig: F.recep, labels: ['zones'],
+    from: [-4, 12, 12.5, -1, 0, -1], to: [1, 12, 12, -1, 0, -1], fig: F.recep, labels: ['zones'],
     title: 'SP 시뮬레이션 운영 설계 · 가상 외래 공간',
     lines: ['두통과 혈압 상승으로 당일 내원한 임신 32주 산모의 위험 징후 인지 및 초기 대응'] },
   { ch: '접수', tag: '시나리오 소개', clock: '09:40 · 접수', dur: 9,
@@ -357,23 +478,24 @@ const SHOTS = [
     title: '09:40 접수',
     lines: ['임신 32주 쌍태 산모(38세 초산)가 아침부터 이어진 두통으로 예약일(내일)보다 하루 일찍 접수합니다.'] },
   { ch: '대기', tag: '시나리오 소개', clock: '09:40 → 10:00 · 대기', dur: 8,
-    from: [-3.0, 2.0, -1.2, -7, .85, 1.0], to: [-4.4, 1.8, -1.9, -7, .85, 1.0], fig: F.wait, labels: ['waiting', 'pat'],
+    from: [-7.6, 1.9, .9, -12.6, .85, -.2], to: [-8.6, 1.8, .3, -12.6, .85, -.2], fig: F.wait, labels: ['waiting', 'pat'],
     title: '접수 후 대기',
-    lines: ['이날 외래는 예약 환자도 약 1시간씩 대기가 밀려 있습니다.', '일반 진료 순서를 기다리면 평가가 늦어지는 상황입니다.'] },
+    lines: ['등받이가 있는 연결 의자에 앉아 대기합니다. 이날 외래는 예약 환자도 약 1시간씩 밀려 있습니다.', '일반 진료 순서를 기다리면 평가가 늦어지는 상황입니다.'] },
   { ch: '시작', tag: '시나리오 소개', clock: '10:00 · 시뮬레이션 시작', dur: 9,
-    from: [-.8, 2.0, 2.4, .5, 1.1, -2.4], to: [.6, 1.9, 1.5, .5, 1.1, -2.4], fig: F.call, labels: ['entry', 'pat'],
+    from: [-3.2, 2.1, 2.6, -1.5, 1.1, -2.4], to: [-1.6, 2.0, 2.2, -.8, 1.1, -2.4], fig: F.call, labels: ['entry', 'pat'],
+    walk: { x0: -4.6, z0: -2.3, x1: 1.1, z1: -2.6, t0: .6, dur: 6.6 },
     title: '10:00 시뮬레이션 시작',
     lines: ['학습자가 처치실 입구에서 산모를 호출하며 시작합니다.', '사전 정보는 이름·나이·임신 주수·접수 사유(두통)뿐입니다.'] },
   { ch: '소품', tag: '운영 설계 · 환경과 소품', clock: '처치실 · 소품 ① 진료 책상', dur: 5.5,
-    from: [6.3, 2.6, -.4, 9.3, .95, -6.2], to: [7.2, 2.5, -.8, 9.3, .95, -6.2], fig: F.props, labels: ['desk'], bp: '155/100', pulse: ['bp', 'phone'],
+    from: [5.4, 3.3, -1.6, 9.7, .8, -6.4], to: [6.2, 3.2, -2.0, 9.7, .8, -6.4], fig: F.props, labels: ['desk'], bp: '155/100', pulse: ['bp', 'phone'],
     title: '처치실 소품 ① 진료 책상',
     lines: ['혈압계 표시값은 진행자 큐에 맞춰 고정(또는 제시)합니다.', '전화는 의료진·입원 담당 전공의 역할이 응답하며 직접 등장하지 않습니다.'] },
   { tag: '운영 설계 · 환경과 소품', clock: '처치실 · 소품 ② 관찰 침상', dur: 5,
-    from: [6.3, 2.0, -.2, 10.4, .6, -1.8], to: [7.0, 1.9, .2, 10.4, .6, -1.8], fig: F.props, labels: ['bed'], pulse: ['bed'],
-    title: '처치실 소품 ② 관찰 침상',
-    lines: ['NST 트랜스듀서 2개와 벨트는 부착 시연만 하고 바로 제거합니다.', '검사 시간(15분)은 시간 카드로 압축합니다.'] },
+    from: [5.6, 3.0, -.6, 10.2, .6, -2.0], to: [6.4, 2.9, -1.2, 10.2, .6, -2.0], fig: F.props, labels: ['bed'], pulse: ['bed'],
+    title: '처치실 소품 ② 관찰 침상 2개와 커튼',
+    lines: ['침상 사이에 커튼을 쳐서 다른 환자와 시선을 가립니다(개인정보 보호).', '시나리오에서는 한 침상에서 NST 부착 시연만 하고 바로 제거합니다.'] },
   { tag: '운영 설계 · 환경과 소품', clock: '처치실 · 소품 ③ 시간 카드와 휠체어', dur: 5,
-    from: [7.3, 3.3, -5.4, 7.3, .5, .4], to: [7.3, 3.1, -4.6, 7.3, .5, .4], fig: F.props, labels: ['card'], pulse: ['card', 'wheel'],
+    from: [5.0, 3.0, 3.6, 5.3, .7, -.3], to: [6.2, 2.8, 3.1, 5.3, .7, -.3], fig: F.props, labels: ['card'], pulse: ['card', 'wheel'],
     title: '처치실 소품 ③ 시간 카드 · 휠체어',
     lines: ['경과 시간 카드로 시간 경과를 알립니다.', '휠체어는 채혈채뇨실 이동 동행에 사용합니다.'] },
   { ch: '밖', tag: '운영 설계 · 환경과 소품', clock: '시뮬레이션 밖 · 채혈채뇨실, 초음파실', dur: 9,
@@ -410,12 +532,16 @@ let TOTAL = 0; SHOTS.forEach(s => { s.t0 = TOTAL; TOTAL += s.dur; });
 const CHAPTERS = SHOTS.map((s, i) => s.ch ? { n: s.ch, t: s.t0 } : null).filter(Boolean);
 
 /* ================= 상태 적용 / 카메라 ================= */
-function place(g, st) { if (!st) { g.visible = false; return; } g.visible = true; g.position.set(st.x, st.y || 0, st.z); face(g, st.fx, st.fz); }
+function place(g, st) {
+  if (!st) { g.visible = false; return; }
+  g.visible = true; g.position.set(st.x, st.y || 0, st.z); face(g, st.fx, st.fz);
+  g.userData.reset(); if (st.arms) g.userData.setArms(st.arms);
+}
 function applyState(s) {
   const f = s.fig;
   pStand.visible = false; pSit.visible = false;
   if (f.pat) place(f.pat.m === 'sit' ? pSit : pStand, f.pat);
-  place(learner, f.learner); place(evalr, f.evalr);
+  place(learner, f.learner); place(evalr, f.evalr); place(recep, STAFF);
   setBP(s.bp, s.bpAlert); setCard('경과 시간 카드');
   const want = s.labels || [];
   labelGroups.forEach(l => { l.obj.visible = l.tags.some(t => want.includes(t)); });
@@ -526,6 +652,12 @@ function frame(now, dtIn) {
     const i = shotIndexAt(t); if (i !== cur) { cur = i; applyState(SHOTS[i]); }
     const s = SHOTS[i], lt = t - s.t0;
     poseCamera(s, lt); if (s.update) s.update(lt);
+    if (s.walk) {                                           // 산모가 호출을 받고 걸어오는 장면
+      const w = s.walk, u = Math.min(1, Math.max(0, (lt - w.t0) / w.dur)), e = u * u * (3 - 2 * u);
+      pStand.position.set(lerp(w.x0, w.x1, e), 0, lerp(w.z0, w.z1, e));
+      if (u > 0 && u < 1) { face(pStand, w.x1, w.z1); pStand.userData.walk(lt * 8); }
+      else { face(pStand, u >= 1 ? 2.4 : w.x1, u >= 1 ? -2.65 : w.z1); pStand.userData.reset(); }
+    }
     const k = .35 + .35 * Math.sin(now / 160);
     for (const n in hl) { const on = (s.pulse || []).includes(n); hl[n].forEach(m => m.emissiveIntensity = on ? k : 0); }
     renderer.render(scene, camera);
@@ -603,7 +735,7 @@ document.addEventListener('visibilitychange', () => {
 
 /* ================= WebXR (VR) ================= */
 const VANTAGE = [
-  { x: -8, z: -2, fx: -9, fz: -5 }, { x: -3, z: 4, fx: -7, fz: 1 }, { x: 2.0, z: -2.65, fx: 7, fz: -3 },
+  { x: -8, z: -2, fx: -9, fz: -5 }, { x: -6, z: 3, fx: -12.5, fz: 0 }, { x: 2.0, z: -2.65, fx: 7, fz: -3 },
   { x: 6.0, z: -1.2, fx: 9, fz: -4 }, { x: 3, z: 3.5, fx: 9, fz: 7 },
 ];
 let vrIdx = 0;
